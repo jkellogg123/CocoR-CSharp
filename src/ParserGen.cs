@@ -317,6 +317,9 @@ public class ParserGen {
 			gen.Write("\tvoid {0}(", sym.name);
 			CopySourcePart(sym.attrPos, 0);
 			gen.WriteLine(") {");
+
+			gen.WriteLine("\t\ttrace_descent.Add(\"{0}\");", sym.name);
+
 			CopySourcePart(sym.semPos, 2);
 			GenCode(sym.graph, 2, new BitArray(tab.terminals.Count));
 			gen.WriteLine("\t}"); gen.WriteLine();
@@ -351,13 +354,38 @@ public class ParserGen {
 		g.SkipFramePart("-->begin");
 
 		if (usingPos != null) { CopySourcePart(usingPos, 0); gen.WriteLine(); }
+
 		g.CopyFramePart("-->namespace");
+
+		gen.WriteLine("using System.Collections.Generic;");
+		// foreach (string line in File.ReadLines("Tree.txt")) {
+		// 	gen.WriteLine(line);
+		// }
+		gen.WriteLine(
+	@"public class Tree<T> {
+    public T value;
+    public List<Tree<T>> children = new List<Tree<T>>();
+
+    public Tree(T value) {
+        this.value = value;
+    }
+
+    public void AddChild(T value) {
+        this.children.Add(new Tree<T>(value));
+    }
+}"		);
+		gen.WriteLine("\nusing SynTree = Tree<string>;");
+		
 		/* AW open namespace, if it exists */
 		if (tab.nsName != null && tab.nsName.Length > 0) {
 			gen.WriteLine("namespace {0} {{", tab.nsName);
 			gen.WriteLine();
 		}
 		g.CopyFramePart("-->constants");
+
+		gen.WriteLine("\tpublic List<string> trace_descent = new List<string>();");
+		gen.WriteLine();
+
 		GenTokens(); /* ML 2002/09/07 write the token kinds */
 		gen.WriteLine("\tpublic const int maxT = {0};", tab.terminals.Count-1);
 		GenPragmas(); /* ML 2005/09/23 write the pragma kinds */
